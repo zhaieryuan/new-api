@@ -26,8 +26,17 @@ func SetUpLogger(server *gin.Engine) {
 		if tag == "" {
 			tag = "web"
 		}
-		return fmt.Sprintf("[GIN] %s | %s | %s | %3d | %13v | %15s | %7s %s\n",
+
+		level := "INFO"
+		if param.StatusCode >= 500 {
+			level = "ERROR"
+		} else if param.StatusCode >= 400 {
+			level = "WARN"
+		}
+
+		return fmt.Sprintf("[GIN] %s | %s | %s | %s | %3d | %13v | %15s | %7s %s\n",
 			param.TimeStamp.Format("2006/01/02 - 15:04:05"),
+			level,
 			tag,
 			requestID,
 			param.StatusCode,
