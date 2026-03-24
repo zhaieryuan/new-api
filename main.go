@@ -24,10 +24,10 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/gin-contrib/sessions/redis"
 
 	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
@@ -169,7 +169,16 @@ func main() {
 	server.Use(middleware.I18n())
 	middleware.SetUpLogger(server)
 	// Initialize session store
-	store := cookie.NewStore([]byte(common.SessionSecret))
+	store, err := redis.NewStore(
+		10,
+		"tcp",
+		"127.0.0.1:6379",
+		"",
+		[]byte(common.SessionSecret))
+	if err != nil {
+		// 处理错误，比如 panic 或 log.Fatal
+		log.Fatal("Failed to create Redis store:", err)
+	}
 	store.Options(sessions.Options{
 		Path:     "/",
 		MaxAge:   2592000, // 30 days
@@ -182,7 +191,7 @@ func main() {
 	InjectUmamiAnalytics()
 	InjectGoogleAnalytics()
 
-	// 设置路由
+	// 设置路由 服务的 controller 路由
 	router.SetRouter(server, buildFS, indexPage)
 	var port = os.Getenv("PORT")
 	if port == "" {
@@ -261,7 +270,7 @@ func InitResources() error {
 
 	service.InitTokenEncoders()
 
-	// Initialize SQL Database
+	// Initialize SQL Database 数据里 ORM 集成
 	err = model.InitDB()
 	if err != nil {
 		common.FatalLog("failed to initialize database: " + err.Error())
